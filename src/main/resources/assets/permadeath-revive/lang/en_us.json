@@ -1,0 +1,6 @@
+{
+  "item.permadeath-revive.revive": "Revive Player",
+
+  "itemgroup.permadeath.revive_items": "Revive Player",
+  "tooltip.permadeath.revive": "Revive a player at the cost of losing some part of you"
+}
