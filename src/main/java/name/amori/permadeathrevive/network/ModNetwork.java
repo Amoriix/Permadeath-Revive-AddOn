@@ -6,6 +6,9 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
+import java.util.Collection;
+import java.util.List;
+
 public class ModNetwork {
 
     public static void registerPayloads() {
@@ -18,9 +21,14 @@ public class ModNetwork {
                 ReviveParticlesPayload.TYPE,
                 ReviveParticlesPayload.CODEC
         );
+
+        PayloadTypeRegistry.playS2C().register(
+                PlayerListPayload.TYPE,
+                PlayerListPayload.CODEC
+        );
     }
 
-    public static void sentTotemAnimation(ServerPlayer player, ResourceLocation itemID) {
+    public static void sendTotemAnimation(ServerPlayer player, ResourceLocation itemID) {
         TotemAnimationPayload payload = new TotemAnimationPayload(itemID);
 
         for(ServerPlayer viewer : PlayerLookup.tracking(player)) {
@@ -30,12 +38,18 @@ public class ModNetwork {
         ServerPlayNetworking.send(player, payload);
     }
 
-    public static void sentReviveParticles(ServerPlayer player, int entityID) {
+    public static void sendReviveParticles(ServerPlayer player, int entityID) {
         ReviveParticlesPayload payload = new ReviveParticlesPayload(entityID);
 
         for(ServerPlayer viewer : PlayerLookup.tracking(player)) {
             ServerPlayNetworking.send(viewer, payload);
         }
+
+        ServerPlayNetworking.send(player, payload);
+    }
+
+    public static void sendBannedPlayerList(ServerPlayer player, List<PlayerInfo> players) {
+        PlayerListPayload payload = new PlayerListPayload(players);
 
         ServerPlayNetworking.send(player, payload);
     }

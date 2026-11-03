@@ -15,7 +15,7 @@ public class ClientPacketHandler {
         ClientPlayNetworking.registerGlobalReceiver(
                 TotemAnimationPayload.TYPE,
                 (payload, context) -> {
-                    PermadeathRevive.LOGGER.info("Received Totem Animation Payload!");
+                    //PermadeathRevive.LOGGER.info("Received Totem Animation Payload!");
                     context.client().execute(() -> {
                         // Retrieve the item using its ResourceLocation
                         Item item = BuiltInRegistries.ITEM.get(payload.itemID());
@@ -37,7 +37,7 @@ public class ClientPacketHandler {
         ClientPlayNetworking.registerGlobalReceiver(
                 ReviveParticlesPayload.TYPE,
                 (payload, context) -> {
-                    PermadeathRevive.LOGGER.info("Received Totem Particles Payload!");
+                    //PermadeathRevive.LOGGER.info("Received Totem Particles Payload!");
                     context.client().execute(() -> {
                         int entityID = payload.entityID();
 
@@ -53,6 +53,17 @@ public class ClientPacketHandler {
                             }
                         }
 
+                    });
+                }
+        );
+
+        ClientPlayNetworking.registerGlobalReceiver(
+                PlayerListPayload.TYPE,
+                (payload, context) -> {
+                    context.client().execute(() -> {
+                        for(PlayerInfo player : payload.players()) {
+                            PermadeathRevive.LOGGER.info("Banned player: {}", player.name());
+                        }
                     });
                 }
         );

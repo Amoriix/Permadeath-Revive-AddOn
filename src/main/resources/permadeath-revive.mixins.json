@@ -3,7 +3,8 @@
 	"package": "name.amori.permadeathrevive.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"ExampleMixin"
+		"ExampleMixin",
+		"StoredUserEntryAccessor"
 	],
 	"injectors": {
 		"defaultRequire": 1
