@@ -1,6 +1,7 @@
 package name.amori.permadeathrevive.network;
 
 import name.amori.permadeathrevive.PermadeathRevive;
+import name.amori.permadeathrevive.gui.ReviveScreen;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -64,6 +65,11 @@ public class ClientPacketHandler {
                         for(PlayerInfo player : payload.players()) {
                             PermadeathRevive.LOGGER.info("Banned player: {}", player.name());
                         }
+
+                        context.client().setScreen(
+                                new ReviveScreen(payload.players())
+                        );
+
                     });
                 }
         );

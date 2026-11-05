@@ -6,7 +6,6 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
-import java.util.Collection;
 import java.util.List;
 
 public class ModNetwork {
@@ -26,15 +25,20 @@ public class ModNetwork {
                 PlayerListPayload.TYPE,
                 PlayerListPayload.CODEC
         );
+
+        PayloadTypeRegistry.playC2S().register(
+                RevivePlayerPayload.TYPE,
+                RevivePlayerPayload.CODEC
+        );
+
+        PayloadTypeRegistry.playC2S().register(
+                CloseReviveScreenPayload.TYPE,
+                CloseReviveScreenPayload.CODEC
+        );
     }
 
     public static void sendTotemAnimation(ServerPlayer player, ResourceLocation itemID) {
         TotemAnimationPayload payload = new TotemAnimationPayload(itemID);
-
-        for(ServerPlayer viewer : PlayerLookup.tracking(player)) {
-            ServerPlayNetworking.send(viewer, payload);
-        }
-
         ServerPlayNetworking.send(player, payload);
     }
 
@@ -50,7 +54,6 @@ public class ModNetwork {
 
     public static void sendBannedPlayerList(ServerPlayer player, List<PlayerInfo> players) {
         PlayerListPayload payload = new PlayerListPayload(players);
-
         ServerPlayNetworking.send(player, payload);
     }
 }

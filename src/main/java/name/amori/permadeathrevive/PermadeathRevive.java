@@ -2,8 +2,8 @@ package name.amori.permadeathrevive;
 
 import name.amori.permadeathrevive.item.ModItemGroups;
 import name.amori.permadeathrevive.item.ModItems;
-import name.amori.permadeathrevive.network.ClientPacketHandler;
 import name.amori.permadeathrevive.network.ModNetwork;
+import name.amori.permadeathrevive.network.ServerPacketHandler;
 import net.fabricmc.api.ModInitializer;
 
 import net.minecraft.resources.ResourceLocation;
@@ -18,6 +18,8 @@ public class PermadeathRevive implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		ModNetwork.registerPayloads();
+
+		ServerPacketHandler.register();
 
 		ModItems.registerModItems();
 		ModItemGroups.registerItemGroups();

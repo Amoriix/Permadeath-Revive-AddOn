@@ -1,13 +1,16 @@
 package name.amori.permadeathrevive.item.custom;
 
+import com.mojang.authlib.GameProfile;
 import name.amori.permadeathrevive.PermadeathRevive;
+import name.amori.permadeathrevive.mixin.StoredUserEntryAccessor;
 import name.amori.permadeathrevive.network.ModNetwork;
-import net.minecraft.ChatFormatting;
-import net.minecraft.core.registries.BuiltInRegistries;
+import name.amori.permadeathrevive.network.PlayerInfo;
+import name.amori.permadeathrevive.player.BannedPlayerManager;
+import name.amori.permadeathrevive.player.ReviveRequestManager;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
+import net.minecraft.server.players.UserBanListEntry;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
@@ -15,7 +18,10 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class ReviveItem extends Item {
@@ -30,30 +36,45 @@ public class ReviveItem extends Item {
         ItemStack stack = player.getItemInHand(hand);
 
         if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
-            //Remove later debugging text
-            PermadeathRevive.LOGGER.info("Sending revive animation and particles!");
-            ModNetwork.sentTotemAnimation(serverPlayer, BuiltInRegistries.ITEM.getKey(this)); // Or could I use this for getKey argument?
-            ModNetwork.sentReviveParticles(serverPlayer, serverPlayer.getId());
 
-            player.level().playSound(null, player.blockPosition(),
-                    SoundEvents.TOTEM_USE,
-                    SoundSource.NEUTRAL,
-                    10.0f, 1.0f);
+            // Get the Server and list of all players
+            MinecraftServer server = serverPlayer.getServer();
 
-            stack.shrink(1);
+            if(ReviveRequestManager.authorizePlayer(serverPlayer)){
+                return InteractionResultHolder.fail(stack);
+            }
 
-            player.getServer().getPlayerList().broadcastSystemMessage(
-                    Component.literal(
-                            "[!] " + player.getName().getString() + " A utilizado objeto de resurrección!"
-                    ).withStyle(
-                            ChatFormatting.GOLD,
-                            ChatFormatting.ITALIC
-                    ),
-                    false
-            );
+            //BanPlayersTest.banPlayersTest(server);
+
+            Collection<UserBanListEntry> banList = BannedPlayerManager.getPermadeathBans(server);
+            List<PlayerInfo> players = createPlayersInfoList(banList);
+
+            ModNetwork.sendBannedPlayerList(serverPlayer, players);
         }
 
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
+    }
+
+    // Helper Method to create a list of people banned by Permadeath
+    private static @NotNull List<PlayerInfo> createPlayersInfoList(Collection<UserBanListEntry> banList) {
+        List<PlayerInfo> players = new ArrayList<>(); // Empty List
+
+        for(UserBanListEntry entry : banList) {
+            StoredUserEntryAccessor accessor = (StoredUserEntryAccessor) entry;
+            GameProfile profile = (GameProfile) accessor.permadeathRevive$invokeGetUser();
+
+            if(profile == null ) {
+                continue;
+            }
+
+            PlayerInfo info = new PlayerInfo(
+                    profile.getId(),
+                    profile.getName()
+            );
+
+            players.add(info);
+        }
+        return players;
     }
 
     @Override
@@ -64,3 +85,6 @@ public class ReviveItem extends Item {
 }
 
 //ResourceLocation itemID = BuiltInRegistries.ITEM.getKey(stack.getItem());
+//PermadeathRevive.LOGGER.info("Sending revive animation and particles!");
+
+//System.out.println("Total bans: " + server.getPlayerList().getBans().getEntries().size());
