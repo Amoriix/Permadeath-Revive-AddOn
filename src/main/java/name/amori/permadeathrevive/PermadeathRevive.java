@@ -4,8 +4,10 @@ import name.amori.permadeathrevive.item.ModItemGroups;
 import name.amori.permadeathrevive.item.ModItems;
 import name.amori.permadeathrevive.network.ModNetwork;
 import name.amori.permadeathrevive.network.ServerPacketHandler;
+import name.amori.permadeathrevive.player.ReviveHealthManager;
 import net.fabricmc.api.ModInitializer;
 
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.minecraft.resources.ResourceLocation;
 
 import org.slf4j.Logger;
@@ -23,6 +25,10 @@ public class PermadeathRevive implements ModInitializer {
 
 		ModItems.registerModItems();
 		ModItemGroups.registerItemGroups();
+
+		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
+			ReviveHealthManager.copyRevivalPenalty(oldPlayer, newPlayer);
+		});
 	}
 
 	public static ResourceLocation id(String path) {

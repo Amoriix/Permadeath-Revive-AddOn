@@ -1,5 +1,6 @@
 package name.amori.permadeathrevive.gui;
 
+import name.amori.permadeathrevive.PermadeathRevive;
 import name.amori.permadeathrevive.client.PlayerSkinCache;
 import name.amori.permadeathrevive.network.CloseReviveScreenPayload;
 import name.amori.permadeathrevive.network.PlayerInfo;
@@ -11,6 +12,7 @@ import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
+import java.awt.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,11 +24,22 @@ public class ReviveScreen extends Screen {
     private final Map<UUID, Supplier<PlayerSkin>> playerSkins = new HashMap<>();
     private final List<PlayerInfo> players;
 
+    private int scrollOffset = 0;
+
     private int panelWidth;
     private int panelHeight;
-
     private int panelX;
     private int panelY;
+
+    private static final int HEADER_HEIGHT = 35;
+    private static final int FOOT_HEADER = 45;
+    private static final int ROW_HEIGHT = 24;
+    private static final int PADDING = 10;
+
+    private int listX;
+    private int listY;
+    private int listWidth;
+    private int listHeight;
 
     private boolean requestSubmitted = false;
 
@@ -34,8 +47,21 @@ public class ReviveScreen extends Screen {
     protected void init() {
         super.init();
 
+        panelWidth = (int)(width * 0.40);
+        panelHeight = (int)(height * 0.50);
+
+        panelX = (width - panelWidth) / 2;
+        panelY = (height - panelHeight) / 2;
+
+        listX = panelX + PADDING;
+        listY = panelY + HEADER_HEIGHT;
+
+        listWidth = panelWidth - (PADDING * 2);
+        listHeight = panelHeight - HEADER_HEIGHT - FOOT_HEADER;
+
         loadPlayerSkins();
     }
+
     @Override
     public void onClose() {
         if(!requestSubmitted) {
@@ -53,12 +79,6 @@ public class ReviveScreen extends Screen {
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         super.render(guiGraphics, mouseX, mouseY, partialTick);
 
-        panelWidth = (int)(width * 0.40);
-        panelHeight = (int)(height * 0.50);
-
-        panelX = (width - panelWidth) / 2;
-        panelY = (height - panelHeight) / 2;
-
         // Draws black rectangle
         guiGraphics.fill(panelX, panelY,panelX + panelWidth, panelY + panelHeight, 0x80000000);
 
@@ -74,18 +94,29 @@ public class ReviveScreen extends Screen {
                 0xFFBFBFBF
         );
 
-        int textX = panelX + 20;
+        int textX = listX + 5;
 
-        for(int i = 0; i < players.size(); i++) {
+        // Prevent rows from rendering outside the list
+        guiGraphics.enableScissor(
+                listX,
+                listY,
+                listX + listWidth,
+                listY + listHeight
+        );
+
+        int starIndex = scrollOffset;
+        int endIndex = Math.min(players.size(), starIndex + getVisibleRows() + 1);
+
+        for(int i = starIndex; i < endIndex; i++) {
             PlayerInfo player = players.get(i);
 
             int playerSlotY = getPlayerSlotY(i);
 
-            int rowLeft = textX;
-            int rowRight = panelX + panelWidth - 10;
+            int rowLeft = listX;
+            int rowRight = listX + listWidth;
 
-            int rowTop = playerSlotY;
-            int rowBottom = rowTop + 20;
+            int rowTop = getPlayerSlotY(i);
+            int rowBottom = rowTop + ROW_HEIGHT;
 
             // Draw hover highlight
             if (mouseX >= rowLeft && mouseX <= rowRight &&
@@ -100,30 +131,56 @@ public class ReviveScreen extends Screen {
                 );
             }
 
+            int textY = playerSlotY + (ROW_HEIGHT - minecraft.font.lineHeight) / 2;
             // Draws Player names
             guiGraphics.drawString(
                     minecraft.font,
                     player.name(),
                     textX + 25,
-                    playerSlotY + 3,
+                    textY,
                     0xFFFFFFFF
             );
 
             Supplier<PlayerSkin> skin = playerSkins.get(player.uuid());
 
+            int headSize = 16;
+            int headY = playerSlotY + (ROW_HEIGHT - headSize) / 2;
+
             if (skin != null) {
                 ResourceLocation texture = skin.get().texture();
-                guiGraphics.blit(texture, textX, playerSlotY,
+                guiGraphics.blit(texture, textX, headY,
                         16, 16, 8f, 8f, 8, 8, 64, 64);
+                // Outer layer: 18×18
+                guiGraphics.blit(texture, textX - 1, headY - 1,
+                        18, 18,
+                        40f, 8f,
+                        8, 8,
+                        64, 64
+                );
             }
+
         }
+        guiGraphics.disableScissor();
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if(button == 0) {
             int textX = panelX + 20;
-            for (int i = 0; i < players.size(); i++) {
+            boolean insideList =
+                    mouseX >= listY &&
+                    mouseX < listX + listWidth &&
+                    mouseY >= listY &&
+                    mouseY < listY + listHeight;
+
+            if(!insideList) {
+                return super.mouseClicked(mouseX, mouseY, button);
+            }
+
+            int startIndex = scrollOffset;
+            int endIndex = Math.min(players.size(), startIndex + getVisibleRows() + 1);
+
+            for (int i = startIndex; i < endIndex; i++) {
                 PlayerInfo player = players.get(i);
 
                 int rowLeft = textX;
@@ -144,6 +201,24 @@ public class ReviveScreen extends Screen {
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if(mouseX >= listY &&
+                mouseX < listX + listWidth &&
+                mouseY >= listY &&
+                mouseY < listY + listHeight) {
+            if(verticalAmount > 0) {
+                scrollOffset--;
+            } else if(verticalAmount < 0) {
+                scrollOffset++;
+            }
+
+            scrollOffset = Math.clamp(scrollOffset, 0, getMaxScrollOffset());
+        }
+
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
     private void loadPlayerSkins() {
@@ -172,6 +247,14 @@ public class ReviveScreen extends Screen {
     }
 
     private int getPlayerSlotY(int index) {
-        return panelY + 35 + (index * 20);
+        return listY + ((index - scrollOffset) * ROW_HEIGHT);
+    }
+
+    private int getVisibleRows() {
+        return  Math.max(1, listHeight / ROW_HEIGHT);
+    }
+
+    private int getMaxScrollOffset() {
+        return Math.max(0, players.size() - getVisibleRows());
     }
 }

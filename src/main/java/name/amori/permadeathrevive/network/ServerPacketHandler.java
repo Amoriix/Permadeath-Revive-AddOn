@@ -1,8 +1,10 @@
 package name.amori.permadeathrevive.network;
 
 import com.mojang.authlib.GameProfile;
+import name.amori.permadeathrevive.PermadeathRevive;
 import name.amori.permadeathrevive.item.ModItems;
 import name.amori.permadeathrevive.player.BannedPlayerManager;
+import name.amori.permadeathrevive.player.ReviveHealthManager;
 import name.amori.permadeathrevive.player.ReviveRequestManager;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.ChatFormatting;
@@ -22,12 +24,25 @@ public class ServerPacketHandler {
                     ServerPlayer requester = context.player();
                     MinecraftServer server = requester.getServer();
 
-                    if(!requester.getInventory().contains(
-                            new ItemStack(ModItems.REVIVE))) {
+
+                    if(!requester.getInventory().contains(new ItemStack(ModItems.REVIVE))) {
+                        ReviveRequestManager.revokeAuthorization(requester);
                         return;
                     }
 
                     if(!ReviveRequestManager.isAuthorized(requester)) {
+                        return;
+                    }
+
+                    // Remove player Authorization after the player has been revived
+                    if(!ReviveHealthManager.canAffordRevival(requester)) {
+                        requester.sendSystemMessage(
+                                Component.literal(
+                                        "Ya no te quedan suficientes corazones permanentes que sacrificar"
+                                )
+                        );
+
+                        ReviveRequestManager.revokeAuthorization(requester);
                         return;
                     }
 
@@ -36,6 +51,10 @@ public class ServerPacketHandler {
                             BannedPlayerManager.getBannedPlayerProfile(
                                     server, payload.playerUUID());
 
+                    if(revivedProfile == null) {
+                        ReviveRequestManager.revokeAuthorization(requester);
+                    }
+
                     boolean success = BannedPlayerManager.unbanPlayer(
                             server,
                             payload.playerUUID()
@@ -43,6 +62,19 @@ public class ServerPacketHandler {
 
                     if(success) {
                         String revivedName = revivedProfile.getName();
+
+                        // Apply permanent heart penalty
+                        boolean penaltyApplied =
+                                ReviveHealthManager.applyRevivalPenalty(requester);
+
+                        if (!penaltyApplied) {
+                            // This should not happen after successful validation.
+                            // Do not silently continue with a free revival.
+                            PermadeathRevive.LOGGER.error(
+                                    "Revival succeeded, but health penalty failed for {}",
+                                    requester.getName().getString()
+                            );
+                        }
 
                         for(ItemStack stack : requester.getInventory().items) {
                             if(stack.is(ModItems.REVIVE)){
@@ -63,7 +95,6 @@ public class ServerPacketHandler {
                                 BuiltInRegistries.ITEM.getKey(ModItems.REVIVE)
                         );
 
-                        // Remove player Authorization after the player has been revived
                         ReviveRequestManager.revokeAuthorization(requester);
 
                         requester.level().playSound(
@@ -81,6 +112,9 @@ public class ServerPacketHandler {
                                     ChatFormatting.ITALIC
                             ), false
                         );
+                    }
+                    else {
+                        ReviveRequestManager.revokeAuthorization(requester);
                     }
                 }
         );

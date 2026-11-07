@@ -6,7 +6,9 @@ import name.amori.permadeathrevive.mixin.StoredUserEntryAccessor;
 import name.amori.permadeathrevive.network.ModNetwork;
 import name.amori.permadeathrevive.network.PlayerInfo;
 import name.amori.permadeathrevive.player.BannedPlayerManager;
+import name.amori.permadeathrevive.player.ReviveHealthManager;
 import name.amori.permadeathrevive.player.ReviveRequestManager;
+import name.amori.permadeathrevive.testBanPlayers.BanPlayersTest;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -36,19 +38,35 @@ public class ReviveItem extends Item {
         ItemStack stack = player.getItemInHand(hand);
 
         if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
-
-            // Get the Server and list of all players
             MinecraftServer server = serverPlayer.getServer();
+            Collection<UserBanListEntry> banList = BannedPlayerManager.getPermadeathBans(server);
+
+            BanPlayersTest.banPlayersTest(server);
+
+            if(!ReviveHealthManager.canAffordRevival(serverPlayer)) {
+                serverPlayer.sendSystemMessage(
+                        Component.literal(
+                                "Necesitas al menos 2 corazones permanentes para revivir a un jugador!"
+                        )
+                );
+                return InteractionResultHolder.fail(stack);
+            }
+
+            if(banList.isEmpty()) {
+                server.sendSystemMessage(
+                        Component.literal(
+                                "No hay jugadores muertos que puedan ser revividos"
+                        )
+                );
+
+                return InteractionResultHolder.fail(stack);
+            }
 
             if(ReviveRequestManager.authorizePlayer(serverPlayer)){
                 return InteractionResultHolder.fail(stack);
             }
 
-            //BanPlayersTest.banPlayersTest(server);
-
-            Collection<UserBanListEntry> banList = BannedPlayerManager.getPermadeathBans(server);
             List<PlayerInfo> players = createPlayersInfoList(banList);
-
             ModNetwork.sendBannedPlayerList(serverPlayer, players);
         }
 
