@@ -14,6 +14,9 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.ItemStack;
 
 public class ServerPacketHandler {
@@ -30,11 +33,11 @@ public class ServerPacketHandler {
                         return;
                     }
 
-                    if(!ReviveRequestManager.isAuthorized(requester)) {
+                    if(!ReviveRequestManager.consumeAuthorization(requester)) {
                         return;
                     }
 
-                    // Remove player Authorization after the player has been revived
+                    // Verify the requester can afford the permanent heart penalty
                     if(!ReviveHealthManager.canAffordRevival(requester)) {
                         requester.sendSystemMessage(
                                 Component.literal(
@@ -53,69 +56,68 @@ public class ServerPacketHandler {
 
                     if(revivedProfile == null) {
                         ReviveRequestManager.revokeAuthorization(requester);
+                        return;
                     }
 
-                    boolean success = BannedPlayerManager.unbanPlayer(
-                            server,
-                            payload.playerUUID()
+                    AttributeInstance healthAttribute = requester.getAttribute(Attributes.MAX_HEALTH);
+
+                    if(healthAttribute == null) {
+                        return;
+                    }
+
+                    AttributeModifier previousModifier = ReviveHealthManager.getPenaltyModifier(requester);
+
+                    // Apply permanent heart penalty
+                    boolean penaltyApplied = ReviveHealthManager.applyRevivalPenalty(requester);
+
+                    if (!penaltyApplied) {
+                        return;
+                    }
+
+                    boolean success = BannedPlayerManager.unbanPlayer(server, payload.playerUUID());
+
+                    if(!success) {
+                        ReviveHealthManager.restoreRevivalPenalty(requester, previousModifier);
+                        return;
+                    }
+
+                    String revivedName = revivedProfile.getName();
+                    for(ItemStack stack : requester.getInventory().items) {
+                        if(stack.is(ModItems.REVIVE)){
+                            stack.shrink(1);
+                            break;
+                        }
+                    }
+
+                    // Send the particles to the requester after reviving the player
+                    ModNetwork.sendReviveParticles(
+                            requester,
+                            requester.getId()
                     );
 
-                    if(success) {
-                        String revivedName = revivedProfile.getName();
+                    // Send the animation to the requester after reviving the player
+                    ModNetwork.sendTotemAnimation(
+                            requester,
+                            BuiltInRegistries.ITEM.getKey(ModItems.REVIVE)
+                    );
 
-                        // Apply permanent heart penalty
-                        boolean penaltyApplied =
-                                ReviveHealthManager.applyRevivalPenalty(requester);
+                    ReviveRequestManager.revokeAuthorization(requester);
 
-                        if (!penaltyApplied) {
-                            // This should not happen after successful validation.
-                            // Do not silently continue with a free revival.
-                            PermadeathRevive.LOGGER.error(
-                                    "Revival succeeded, but health penalty failed for {}",
-                                    requester.getName().getString()
-                            );
-                        }
+                    requester.level().playSound(
+                            null,
+                            requester.blockPosition(),
+                            SoundEvents.TOTEM_USE,
+                            SoundSource.NEUTRAL,
+                            10.0f, 1.0f);
 
-                        for(ItemStack stack : requester.getInventory().items) {
-                            if(stack.is(ModItems.REVIVE)){
-                                stack.shrink(1);
-                                break;
-                            }
-                        }
-
-                        // Send the particles to the requester after reviving the player
-                        ModNetwork.sendReviveParticles(
-                                requester,
-                                requester.getId()
-                        );
-
-                        // Send the animation to the requester after reviving the player
-                        ModNetwork.sendTotemAnimation(
-                                requester,
-                                BuiltInRegistries.ITEM.getKey(ModItems.REVIVE)
-                        );
-
-                        ReviveRequestManager.revokeAuthorization(requester);
-
-                        requester.level().playSound(
-                                null,
-                                requester.blockPosition(),
-                                SoundEvents.TOTEM_USE,
-                                SoundSource.NEUTRAL,
-                                10.0f, 1.0f);
-
-                        requester.getServer().getPlayerList().broadcastSystemMessage(
+                    requester.getServer().getPlayerList().broadcastSystemMessage(
                             Component.literal(
                                     "[!] " + requester.getName().getString() + " A Revivido a " + revivedName
                             ).withStyle(
                                     ChatFormatting.GOLD,
                                     ChatFormatting.ITALIC
                             ), false
-                        );
-                    }
-                    else {
-                        ReviveRequestManager.revokeAuthorization(requester);
-                    }
+                    );
                 }
         );
 

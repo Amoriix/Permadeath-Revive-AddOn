@@ -5,6 +5,7 @@ import name.amori.permadeathrevive.item.ModItems;
 import name.amori.permadeathrevive.network.ModNetwork;
 import name.amori.permadeathrevive.network.ServerPacketHandler;
 import name.amori.permadeathrevive.player.ReviveHealthManager;
+import name.amori.permadeathrevive.worldgen.structure.ModStructures;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
@@ -25,6 +26,8 @@ public class PermadeathRevive implements ModInitializer {
 
 		ModItems.registerModItems();
 		ModItemGroups.registerItemGroups();
+
+		ModStructures.register();
 
 		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
 			ReviveHealthManager.copyRevivalPenalty(oldPlayer, newPlayer);

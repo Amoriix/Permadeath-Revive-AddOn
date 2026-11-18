@@ -1,0 +1,15 @@
+{
+  "structures": [
+    {
+      "structure": "permadeath-revive:nether_heart_shrine",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "salt": 84729103,
+    "spacing": 32,
+    "separation": 12
+  }
+}
+

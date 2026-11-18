@@ -24,7 +24,7 @@ public class ModRecipeProvider extends FabricRecipeProvider {
                 .pattern("XGB")
                 .define('B', Items.BONE)
                 .define('E', Items.ENDER_EYE)
-                .define('X', Items.BLAZE_POWDER)
+                .define('X', ModItems.SOUL_ESSENCE)
                 .define('T', Items.TOTEM_OF_UNDYING)
                 .define('A', Items.GOLDEN_APPLE)
                 .define('G', Items.GHAST_TEAR)

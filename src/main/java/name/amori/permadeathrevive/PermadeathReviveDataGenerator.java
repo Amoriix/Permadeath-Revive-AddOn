@@ -1,5 +1,6 @@
 package name.amori.permadeathrevive;
 
+import name.amori.permadeathrevive.datagen.ModLootTableProvider;
 import name.amori.permadeathrevive.datagen.ModModelProvider;
 import name.amori.permadeathrevive.datagen.ModRecipeProvider;
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
@@ -12,5 +13,6 @@ public class PermadeathReviveDataGenerator implements DataGeneratorEntrypoint {
 
 		pack.addProvider(ModRecipeProvider::new);
 		pack.addProvider(ModModelProvider::new);
+		pack.addProvider(ModLootTableProvider::new);
 	}
 }

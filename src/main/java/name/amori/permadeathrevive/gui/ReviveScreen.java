@@ -1,18 +1,17 @@
 package name.amori.permadeathrevive.gui;
 
-import name.amori.permadeathrevive.PermadeathRevive;
 import name.amori.permadeathrevive.client.PlayerSkinCache;
 import name.amori.permadeathrevive.network.CloseReviveScreenPayload;
 import name.amori.permadeathrevive.network.PlayerInfo;
 import name.amori.permadeathrevive.network.RevivePlayerPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
-import java.awt.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +22,10 @@ import java.util.function.Supplier;
 public class ReviveScreen extends Screen {
     private final Map<UUID, Supplier<PlayerSkin>> playerSkins = new HashMap<>();
     private final List<PlayerInfo> players;
+    private PlayerInfo selectedPlayer = null;
+
+
+    private Button reviveButton;
 
     private int scrollOffset = 0;
 
@@ -31,7 +34,7 @@ public class ReviveScreen extends Screen {
     private int panelX;
     private int panelY;
 
-    private static final int HEADER_HEIGHT = 35;
+    private static final int HEADER_HEIGHT = 45;
     private static final int FOOT_HEADER = 45;
     private static final int ROW_HEIGHT = 24;
     private static final int PADDING = 10;
@@ -59,6 +62,25 @@ public class ReviveScreen extends Screen {
         listWidth = panelWidth - (PADDING * 2);
         listHeight = panelHeight - HEADER_HEIGHT - FOOT_HEADER;
 
+        int buttonWidth = 90;
+        int buttonHeight = 20;
+
+        int buttonX = panelX + (panelWidth - buttonWidth) / 2;
+        int buttonY = panelY + panelHeight - buttonHeight - 10;
+
+        reviveButton = Button.builder(
+                Component.literal("REVIVR"),
+                button -> confirmRevival()
+        ).bounds(
+                buttonX,
+                buttonY,
+                buttonWidth,
+                buttonHeight
+        ).build();
+
+        reviveButton.active = selectedPlayer != null;
+        addRenderableWidget(reviveButton);
+
         loadPlayerSkins();
     }
 
@@ -83,14 +105,28 @@ public class ReviveScreen extends Screen {
         guiGraphics.fill(panelX, panelY,panelX + panelWidth, panelY + panelHeight, 0x80000000);
 
         // Draws Title inside the rectangle
-        guiGraphics.drawCenteredString(minecraft.font, "JUGADORES MUERTOS", panelX + (panelWidth / 2), panelY + 10, 0xFFFFFFFF);
+        guiGraphics.drawCenteredString(
+                minecraft.font,
+                "JUGADORES MUERTOS",
+                panelX + (panelWidth / 2),
+                panelY + 10,
+                0xFFFFFFFF);
+
+        // Draws Counter of people dead
+        guiGraphics.drawCenteredString(
+                minecraft.font,
+                "Numero de muertos: " + players.size(),
+                panelX + panelWidth / 2,
+                panelY + 23,
+                0xFFAAAAAA
+        );
 
         // Draws Line separation from title and usernames
         guiGraphics.fill(
                 panelX + 10,
-                panelY + 25,
+                panelY + 35,
                 panelX + panelWidth - 10,
-                panelY + 26,
+                panelY + 36,
                 0xFFBFBFBF
         );
 
@@ -118,10 +154,23 @@ public class ReviveScreen extends Screen {
             int rowTop = getPlayerSlotY(i);
             int rowBottom = rowTop + ROW_HEIGHT;
 
-            // Draw hover highlight
-            if (mouseX >= rowLeft && mouseX <= rowRight &&
-                    mouseY >= rowTop && mouseY <= rowBottom) {
+            boolean isHovered = mouseX >= rowLeft && mouseX < rowRight &&
+                            mouseY >= rowTop && mouseY < rowBottom &&
+                            mouseY >= listY && mouseY < listY + listHeight;
 
+            boolean isSelected =
+                    selectedPlayer != null && selectedPlayer.uuid().equals(player.uuid());
+
+            // Draw hover highlight
+            if (isSelected) {
+                guiGraphics.fill(
+                        rowLeft,
+                        rowTop,
+                        rowRight,
+                        rowBottom,
+                        0x8066AA66
+                );
+            } else if(isHovered) {
                 guiGraphics.fill(
                         rowLeft,
                         rowTop,
@@ -161,6 +210,15 @@ public class ReviveScreen extends Screen {
 
         }
         guiGraphics.disableScissor();
+
+        String selectedName = selectedPlayer != null ? selectedPlayer.name() : "Ninguno";
+
+        guiGraphics.drawCenteredString(
+                minecraft.font,
+                "Seleccionado: " + selectedName,
+                panelX + panelWidth / 2,
+                panelY + panelHeight - 40,
+                0xFFFFFFFF);
     }
 
     @Override
@@ -192,9 +250,8 @@ public class ReviveScreen extends Screen {
                 if (mouseX >= rowLeft && mouseX <= rowRight &&
                         mouseY >= rowTop && mouseY <= rowBottom) {
 
-                    requestSubmitted = true;
-                    ClientPlayNetworking.send(new RevivePlayerPayload(player.uuid()));
-                    minecraft.setScreen(null);
+                    selectedPlayer = player;
+                    reviveButton.active = true;
 
                     return true;
                 }
@@ -244,6 +301,20 @@ public class ReviveScreen extends Screen {
                 });
             }
         }
+    }
+
+    private void confirmRevival() {
+        if(selectedPlayer == null || requestSubmitted) {
+            return;
+        }
+
+        requestSubmitted = true;
+
+        ClientPlayNetworking.send(
+                new RevivePlayerPayload(selectedPlayer.uuid())
+        );
+
+        minecraft.setScreen(null);
     }
 
     private int getPlayerSlotY(int index) {

@@ -34,6 +34,9 @@ public class ModItemGroups {
         ItemGroupEvents.modifyEntriesEvent(REVIVE_ITEM_GROUP_KEY)
                 .register(itemGroup -> {
                     itemGroup.accept(ModItems.REVIVE);
+                    itemGroup.accept(ModItems.PERMANENT_HEART);
+                    itemGroup.accept(ModItems.SOUL_ESSENCE);
+                    itemGroup.accept(ModItems.AMORI_TOTEM);
                 });
     }
 }

@@ -20,4 +20,8 @@ public class ReviveRequestManager {
     public static void revokeAuthorization(ServerPlayer player) {
         players.remove(player.getUUID());
     }
+
+    public static boolean consumeAuthorization(ServerPlayer player) {
+        return players.remove(player.getUUID());
+    }
 }

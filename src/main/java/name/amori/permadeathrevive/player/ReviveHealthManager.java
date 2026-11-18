@@ -6,6 +6,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import org.apache.logging.log4j.core.jmx.Server;
 
 public class ReviveHealthManager {
     private static final ResourceLocation HEALTH_PENALTY_ID =
@@ -22,6 +23,12 @@ public class ReviveHealthManager {
                     "permadeath",
                     "armor_health_bonus"
             );
+
+    public static AttributeModifier getPenaltyModifier(ServerPlayer player) {
+        AttributeInstance attribute = player.getAttribute(Attributes.MAX_HEALTH);
+
+        return attribute == null ? null : attribute.getModifier(HEALTH_PENALTY_ID);
+    }
 
     public static double getPermanentHealth(ServerPlayer player) {
         AttributeInstance healthAttribute =
@@ -101,5 +108,65 @@ public class ReviveHealthManager {
         if (newPlayer.getHealth() > newPlayer.getMaxHealth()) {
             newPlayer.setHealth(newPlayer.getMaxHealth());
         }
+    }
+
+    public static void restoreRevivalPenalty(ServerPlayer player, AttributeModifier previousModifier) {
+        AttributeInstance healthAttribute = player.getAttribute(Attributes.MAX_HEALTH);
+
+        if(healthAttribute == null) {
+            return;
+        }
+
+        healthAttribute.removeModifier(HEALTH_PENALTY_ID);
+
+        if(previousModifier != null) {
+            healthAttribute.addPermanentModifier(previousModifier);
+        }
+    }
+
+    public static boolean canRestoreHeart(ServerPlayer player) {
+        AttributeModifier modifier = getPenaltyModifier(player);
+        if(modifier == null  || modifier.amount() >= 0.0) {
+            return false; // No penalty modifier currently exist on that player
+        }
+
+        return true;
+    }
+
+    public static boolean restoreHeart(ServerPlayer player) {
+        if(!canRestoreHeart(player)) {
+            return false;
+        }
+
+        AttributeInstance healthAttribute =
+                player.getAttribute(Attributes.MAX_HEALTH);
+
+        if(healthAttribute == null) {
+            return false;
+        }
+
+        AttributeModifier existingModifier =
+                healthAttribute.getModifier(HEALTH_PENALTY_ID);
+
+
+        double currentPenalty = existingModifier.amount();
+        double newPenalty = currentPenalty + HEALTH_COST;
+
+        newPenalty = Math.min(0.0, newPenalty);
+        healthAttribute.removeModifier(HEALTH_PENALTY_ID);
+
+        if(newPenalty < 0.0) {
+            AttributeModifier penaltyModifier = new AttributeModifier(
+                    HEALTH_PENALTY_ID,
+                    newPenalty,
+                    AttributeModifier.Operation.ADD_VALUE
+            );
+            healthAttribute.addPermanentModifier(penaltyModifier);
+        }
+
+        float healAmount = (float)(newPenalty - currentPenalty);
+        player.heal(healAmount);
+
+        return true;
     }
 }

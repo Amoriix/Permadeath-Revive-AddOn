@@ -1,5 +1,8 @@
 {
   "item.permadeath-revive.revive": "Revive Player",
+  "item.permadeath-revive.permanent_heart": "Heart",
+  "item.permadeath-revive.soul_essence": "Soul Essence",
+  "item.permadeath-revive.amori_totem": "Amori Totem",
 
   "itemgroup.permadeath.revive_items": "Revive Player",
   "tooltip.permadeath.revive": "Revive a player at the cost of losing some part of you"

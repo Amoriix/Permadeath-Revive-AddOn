@@ -34,7 +34,7 @@ public class ReviveItem extends Item {
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
-        PermadeathRevive.LOGGER.info("ReviveItem use() called!");
+        //PermadeathRevive.LOGGER.info("ReviveItem use() called!");
         ItemStack stack = player.getItemInHand(hand);
 
         if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {

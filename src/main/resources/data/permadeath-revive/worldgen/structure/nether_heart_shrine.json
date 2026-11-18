@@ -1,0 +1,11 @@
+{
+  "type": "permadeath-revive:nether_heart_shrine",
+  "biomes": "#permadeath-revive:has_structure/nether_heart_shrine",
+  "step": "surface_structures",
+  "spawn_overrides": {},
+  "terrain_adaptation": "none",
+  "start_pool": "permadeath-revive:nether_heart_shrine",
+  "start_height": {
+    "absolute": 64
+  }
+}

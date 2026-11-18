@@ -4,7 +4,9 @@
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"ExampleMixin",
-		"StoredUserEntryAccessor"
+		"StoredUserEntryAccessor",
+		"SinglePoolElementAccessor",
+		"PoolElementStructurePieceMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

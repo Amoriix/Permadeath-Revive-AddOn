@@ -1,2 +1,5 @@
-// 1.21.1	2026-10-30T20:40:35.8318353	permadeath-revive/Model Definitions
+// 1.21.1	2026-11-18T01:29:18.8991866	permadeath-revive/Model Definitions
+6a74824e79d0031cf1200ac2248253670a3f44ca assets\permadeath-revive\models\item\permanent_heart.json
+75a13a9a7bbea9c023ed34247bb1a2ab90c2b02b assets\permadeath-revive\models\item\soul_essence.json
+2494c62f25e21fc0666873d6029036429c1ec892 assets\permadeath-revive\models\item\amori_totem.json
 9552c36f4f921ef7765ea01e7451c4c91cf2ddb9 assets\permadeath-revive\models\item\revive.json

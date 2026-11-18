@@ -18,7 +18,7 @@
       "item": "minecraft:totem_of_undying"
     },
     "X": {
-      "item": "minecraft:blaze_powder"
+      "item": "permadeath-revive:soul_essence"
     }
   },
   "pattern": [
